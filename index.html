@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlowMind — Code to Flowchart & Algorithm</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: #2a2a3a;
+    --accent: #00e5ff;
+    --accent2: #7c3aed;
+    --accent3: #f59e0b;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --success: #10b981;
+    --danger: #ef4444;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Header */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 16px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,10,15,0.8);
+    backdrop-filter: blur(12px);
+  }
+
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .logo-text { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .logo-sub { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+
+  /* Main layout */
+  .main {
+    position: relative;
+    z-index: 5;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: calc(100vh - 73px);
+  }
+
+  /* Left panel */
+  .left-panel { display: flex; flex-direction: column; border-right: 1px solid var(--border); background: var(--surface); }
+  .panel-header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--surface2); }
+  .panel-title { font-family: 'Space Mono', monospace; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .panel-title span { color: var(--accent); }
+
+  .lang-select { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'Space Mono', monospace; font-size: 12px; padding: 6px 12px; cursor: pointer; outline: none;}
+  
+  /* Editor */
+  .editor-wrapper { flex: 1; position: relative; overflow: hidden; }
+  .line-numbers { position: absolute; left: 0; top: 0; bottom: 0; width: 50px; background: var(--surface2); border-right: 1px solid var(--border); padding: 16px 8px; font-family: 'Space Mono', monospace; font-size: 13px; line-height: 1.6; color: var(--muted); text-align: right; user-select: none; overflow: hidden; }
+  #codeInput { position: absolute; left: 50px; top: 0; right: 0; bottom: 0; background: transparent; border: none; outline: none; resize: none; padding: 16px; font-family: 'Space Mono', monospace; font-size: 13px; line-height: 1.6; color: var(--text); tab-size: 2; }
+
+  /* Controls */
+  .controls { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 12px; align-items: center; background: var(--surface2); }
+  .btn-primary { flex: 1; padding: 12px 24px; background: linear-gradient(135deg, var(--accent2), #5b21b6); border: none; border-radius: 8px; color: white; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(124,58,237,0.4); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-secondary { padding: 12px 16px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); cursor: pointer; }
+
+  /* Right panel */
+  .right-panel { display: flex; flex-direction: column; background: var(--bg); }
+  .tab-bar { display: flex; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .tab { padding: 14px 24px; font-family: 'Space Mono', monospace; font-size: 12px; text-transform: uppercase; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); background: rgba(0,229,255,0.04); }
+
+  .output-area { flex: 1; overflow-y: auto; padding: 24px; display: none; }
+  .output-area.active { display: block; }
+
+  /* States */
+  .empty-state, .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 16px; text-align: center; }
+  .empty-icon { font-size: 48px; opacity: 0.3; }
+  .loading-ring { width: 48px; height: 48px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Mermaid Flowchart Container */
+  .mermaid-container { width: 100%; display: flex; justify-content: center; padding: 20px; background: var(--surface2); border-radius: 8px; border: 1px solid var(--border); }
+
+  /* Algorithm Styling */
+  .algo-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .algo-tag { padding: 4px 12px; background: rgba(0,229,255,0.1); border: 1px solid rgba(0,229,255,0.2); border-radius: 4px; font-size: 11px; color: var(--accent); }
+  .algo-name { font-size: 20px; font-weight: 700; color: var(--text); }
+  .complexity-badge { padding: 6px 14px; border-radius: 6px; font-size: 12px; display: inline-flex; margin-right: 10px; margin-bottom: 20px; background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.3); color: #a78bfa;}
+  
+  .algo-step { display: flex; gap: 16px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; }
+  .step-num { min-width: 28px; height: 28px; background: linear-gradient(135deg, var(--accent2), #4c1d95); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; }
+  .step-title { font-weight: 700; color: var(--text); font-size: 13px; margin-bottom: 4px; }
+  .step-desc { font-size: 11px; color: var(--muted); line-height: 1.7; }
+  .step-code { margin-top: 8px; padding: 8px 12px; background: var(--bg); border-radius: 4px; font-size: 11px; color: var(--accent3); border-left: 2px solid var(--accent3); font-family: monospace; white-space: pre-wrap; }
+
+  .error-box { padding: 16px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; color: #fca5a5; font-family: 'Space Mono', monospace; font-size: 12px; }
+
+  .samples { display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 24px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .sample-btn { padding: 4px 10px; background: transparent; border: 1px solid var(--border); border-radius: 20px; color: var(--muted); font-size: 10px; cursor: pointer; }
+  .sample-btn:hover { border-color: var(--accent3); color: var(--accent3); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">⟁</div>
+    <div>
+      <div class="logo-text">FlowMind</div>
+      <div class="logo-sub">Code → Flowchart & Algorithm</div>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+  <div class="left-panel">
+    <div class="panel-header">
+      <div class="panel-title"><span>◈</span> Code Input</div>
+      <select class="lang-select" id="langSelect">
+        <option value="auto">Auto Detect</option>
+        <option value="python">Python</option>
+        <option value="javascript">JavaScript</option>
+        <option value="c++">C/C++</option>
+        <option value="java">Java</option>
+      </select>
+    </div>
+
+    <div class="samples">
+      <span style="font-size:10px;color:var(--muted);">Try:</span>
+      <button class="sample-btn" onclick="loadSample('bubble')">Bubble Sort</button>
+      <button class="sample-btn" onclick="loadSample('binary')">Binary Search</button>
+      <button class="sample-btn" onclick="loadSample('fibonacci')">Fibonacci</button>
+    </div>
+
+    <div class="editor-wrapper">
+      <div class="line-numbers" id="lineNumbers">1</div>
+      <textarea id="codeInput" spellcheck="false" placeholder="Paste your code here..."></textarea>
+    </div>
+
+    <div class="controls">
+      <button class="btn-secondary" onclick="clearCode()">✕ Clear</button>
+      <button class="btn-primary" id="analyzeBtn" onclick="analyzeCode()">
+        <span id="btnText">⟁ Generate Analysis</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="tab-bar">
+      <div class="tab active" id="tab-flowchart" onclick="switchTab('flowchart')">◈ Flowchart</div>
+      <div class="tab" id="tab-algorithm" onclick="switchTab('algorithm')">⌥ Algorithm</div>
+    </div>
+
+    <div class="output-area active" id="panel-flowchart">
+      <div class="empty-state" id="empty-flowchart">
+        <div class="empty-icon">◈</div>
+        <div class="empty-title">Flowchart will appear here</div>
+      </div>
+      <div id="loading-flowchart" class="loading-state" style="display:none;">
+        <div class="loading-ring"></div><div class="loading-text">Generating visual nodes...</div>
+      </div>
+      <div id="flowchart-output" style="display:none;" class="mermaid-container"></div>
+    </div>
+
+    <div class="output-area" id="panel-algorithm">
+      <div class="empty-state" id="empty-algorithm">
+        <div class="empty-icon">⌥</div>
+        <div class="empty-title">Algorithm breakdown will appear here</div>
+      </div>
+      <div id="loading-algorithm" class="loading-state" style="display:none;">
+        <div class="loading-ring"></div><div class="loading-text">Extracting logic steps...</div>
+      </div>
+      <div id="algorithm-output" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Initialize Mermaid for dark theme
+mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+
+const codeInput = document.getElementById('codeInput');
+const lineNumbers = document.getElementById('lineNumbers');
+
+function updateLineNumbers() {
+  const lines = codeInput.value.split('\n').length;
+  lineNumbers.innerHTML = Array.from({length: lines}, (_, i) => i + 1).join('<br>');
+}
+codeInput.addEventListener('input', updateLineNumbers);
+codeInput.addEventListener('scroll', () => { lineNumbers.scrollTop = codeInput.scrollTop; });
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.output-area').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+
+const samples = {
+  bubble: `function bubbleSort(arr) {\n  for (let i = 0; i < arr.length; i++) {\n    for (let j = 0; j < arr.length - i - 1; j++) {\n      if (arr[j] > arr[j + 1]) {\n        let temp = arr[j];\n        arr[j] = arr[j + 1];\n        arr[j + 1] = temp;\n      }\n    }\n  }\n  return arr;\n}`,
+  binary: `def binary_search(arr, target):\n    left, right = 0, len(arr) - 1\n    while left <= right:\n        mid = (left + right) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            left = mid + 1\n        else:\n            right = mid - 1\n    return -1`,
+  fibonacci: `int fibonacci(int n) {\n    if (n <= 1) return n;\n    return fibonacci(n - 1) + fibonacci(n - 2);\n}`
+};
+
+function loadSample(name) { codeInput.value = samples[name]; updateLineNumbers(); }
+function clearCode() { codeInput.value = ''; updateLineNumbers(); }
+
+// Secure Backend Fetch Function
+async function fetchGemini(prompt) {
+  // Points to YOUR Vercel backend! No API key needed here.
+  const response = await fetch('/api/analyze', {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt: prompt })
+  });
+
+  if (!response.ok) {
+    const errData = await response.json();
+    throw new Error(errData.error || `Server error ${response.status}`);
+  }
+  
+  const data = await response.json();
+  if (!data.candidates || !data.candidates[0]) throw new Error("Invalid response from AI");
+  return data.candidates[0].content.parts[0].text.trim();
+}
+
+async function analyzeCode() {
+  const code = codeInput.value.trim();
+  
+  if (!code) return alert('Please enter some code first!');
+
+  const lang = document.getElementById('langSelect').value;
+  const btn = document.getElementById('analyzeBtn');
+  btn.disabled = true;
+  document.getElementById('btnText').textContent = '⟳ Analyzing...';
+
+  ['flowchart', 'algorithm'].forEach(tab => {
+    document.getElementById('empty-' + tab).style.display = 'none';
+    document.getElementById('loading-' + tab).style.display = 'flex';
+    document.getElementById(tab + '-output').style.display = 'none';
+  });
+
+  try {
+    const [flowchartData, algorithmData] = await Promise.all([
+      fetchFlowchart(code, lang), 
+      fetchAlgorithm(code, lang)  
+    ]);
+
+    await renderFlowchart(flowchartData);
+    renderAlgorithm(algorithmData);
+
+  } catch (err) {
+    ['flowchart', 'algorithm'].forEach(tab => {
+      document.getElementById('loading-' + tab).style.display = 'none';
+      const out = document.getElementById(tab + '-output');
+      out.style.display = 'block';
+      out.innerHTML = `<div class="error-box">⚠ Error: ${err.message}</div>`;
+    });
+  } finally {
+    btn.disabled = false;
+    document.getElementById('btnText').textContent = '⟁ Generate Analysis';
+  }
+}
+
+async function fetchFlowchart(code, lang) {
+  const prompt = `Analyze this ${lang} code and generate a Mermaid.js flowchart (graph TD). 
+  Only output the raw Mermaid syntax. Do NOT wrap in markdown \`\`\`mermaid blocks. Do NOT include any explanations.
+  Use descriptive labels for nodes. Include loops and conditional arrows appropriately.
+  CRITICAL: You MUST wrap all node text in double quotes to prevent syntax errors with mathematical symbols (e.g., A["i < 10"] or B{"arr[i] > 5"}).
+  Code:\n${code}`;
+  
+  let result = await fetchGemini(prompt);
+  return result.replace(/```mermaid\n?|```\n?/g, '').trim();
+}
+
+async function fetchAlgorithm(code, lang) {
+  const prompt = `You are an expert computer science professor. Analyze this ${lang} code and generate a detailed, step-by-step algorithm breakdown.
+  
+  CRITICAL INSTRUCTIONS:
+  1. Break the main logic down into 4 to 8 distinct, logical steps.
+  2. Make the 'title' short and descriptive (e.g., "Initialize Matrix").
+  3. Keep the 'description' field concise (1-2 sentences explaining the 'why').
+  4. Put the actual programmatic logic (loops, conditions, math) into the 'pseudocode' field using clean, standard pseudocode. Use \\n for line breaks.
+  5. Standardize array/matrix indexing to be consistent.
+  6. Output ONLY raw, valid JSON. Absolutely no markdown formatting like \`\`\`json.
+  
+  Code to analyze:
+  ${code}
+  
+  Required JSON Format exactly like this:
+  {
+    "name": "Specific Algorithm Name",
+    "type": "Graph / Sorting / Array / etc",
+    "time_complexity": "O(...)",
+    "space_complexity": "O(...)",
+    "description": "Overall summary of what this code achieves.",
+    "steps": [
+      { 
+        "number": 1, 
+        "title": "Step Name", 
+        "description": "Plain English explanation.", 
+        "pseudocode": "DECLARE matrix\\nFOR i FROM 1 TO N:\\n  SET x = 0" 
+      }
+    ]
+  }`;
+  
+  let result = await fetchGemini(prompt);
+  
+  // Clean up the string just in case the AI adds markdown anyway
+  const cleanJsonStr = result.replace(/```json\n?|```\n?/g, '').trim();
+  
+  return JSON.parse(cleanJsonStr);
+}
+
+async function renderFlowchart(mermaidSyntax) {
+  document.getElementById('loading-flowchart').style.display = 'none';
+  const out = document.getElementById('flowchart-output');
+  out.style.display = 'flex';
+  out.innerHTML = ''; 
+  
+  try {
+    const { svg } = await mermaid.render('mermaid-graph', mermaidSyntax);
+    out.innerHTML = svg;
+  } catch (e) {
+    out.innerHTML = `<div class="error-box">Failed to render flowchart. The AI generated invalid Mermaid syntax.<br><br>Raw Output:<br><pre>${mermaidSyntax}</pre></div>`;
+  }
+}
+
+function renderAlgorithm(data) {
+  document.getElementById('loading-algorithm').style.display = 'none';
+  const out = document.getElementById('algorithm-output');
+  out.style.display = 'block';
+
+  let html = `
+    <div class="algo-header">
+      <div class="algo-tag">${data.type || 'Algorithm'}</div>
+      <div class="algo-name">${data.name || 'Analysis'}</div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:15px;">${data.description || ''}</p>
+    <div class="complexity-badge">⏱ Time: ${data.time_complexity || 'N/A'}</div>
+    <div class="complexity-badge" style="background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); color: #34d399;">◱ Space: ${data.space_complexity || 'N/A'}</div>
+  `;
+
+  if (data.steps && data.steps.length) {
+    data.steps.forEach((step, i) => {
+      html += `
+        <div class="algo-step">
+          <div class="step-num">${step.number || i + 1}</div>
+          <div style="flex: 1;">
+            <div class="step-title">${step.title || ''}</div>
+            <div class="step-desc">${step.description || ''}</div>
+            ${step.pseudocode ? `<div class="step-code">${step.pseudocode}</div>` : ''}
+          </div>
+        </div>
+      `;
+    });
+  }
+  out.innerHTML = html;
+}
+
+loadSample('bubble');
+</script>
+</body>
+</html>
