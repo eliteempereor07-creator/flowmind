@@ -177,6 +177,7 @@
     <div class="tab-bar">
       <div class="tab active" id="tab-flowchart" onclick="switchTab('flowchart')">◈ Flowchart</div>
       <div class="tab" id="tab-algorithm" onclick="switchTab('algorithm')">⌥ Algorithm</div>
+      <button onclick="copyAlgorithm()" style="margin-left: auto; background: transparent; border: none; color: var(--accent); cursor: pointer; padding: 0 20px; font-size: 11px; font-family: 'Space Mono', monospace; text-transform: uppercase; letter-spacing: 1px;">📋 Copy text</button>
     </div>
 
     <div class="output-area active" id="panel-flowchart">
@@ -235,7 +236,6 @@ function clearCode() { codeInput.value = ''; updateLineNumbers(); }
 
 // Secure Backend Fetch Function
 async function fetchGemini(prompt) {
-  // Points to YOUR Vercel backend! No API key needed here.
   const response = await fetch('/api/analyze', {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -333,10 +333,7 @@ async function fetchAlgorithm(code, lang) {
   }`;
   
   let result = await fetchGemini(prompt);
-  
-  // Clean up the string just in case the AI adds markdown anyway
   const cleanJsonStr = result.replace(/```json\n?|```\n?/g, '').trim();
-  
   return JSON.parse(cleanJsonStr);
 }
 
@@ -386,8 +383,23 @@ function renderAlgorithm(data) {
   out.innerHTML = html;
 }
 
+// COPY ALGORITHM LOGIC
+function copyAlgorithm() {
+  const output = document.getElementById('algorithm-output');
+  if (!output || output.style.display === 'none' || output.innerText.trim() === "") {
+    return alert('Please generate an algorithm first!');
+  }
+  const text = output.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    alert('Algorithm text copied to clipboard!');
+  }).catch(err => {
+    console.error('Could not copy text: ', err);
+  });
+}
+
 loadSample('bubble');
 </script>
+
 <section style="padding: 40px 24px; border-top: 1px solid var(--border); background: var(--surface2); margin-top: 40px;">
   <div style="max-width: 800px; margin: 0 auto; color: var(--muted); font-size: 14px; line-height: 1.6;">
     <h2 style="color: var(--accent); margin-bottom: 16px; font-size: 20px;">About FlowMind AI</h2>
@@ -402,5 +414,6 @@ loadSample('bubble');
     </p>
   </div>
 </section>
+
 </body>
 </html>
