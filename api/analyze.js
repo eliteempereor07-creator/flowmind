@@ -18,7 +18,7 @@ export default async function handler(req, res) {
    * Switched to gemini-2.5-flash-preview-09-2025 for better stability 
    * and to avoid 'High Demand' routing issues.
    */
-  const url = `"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent${apiKey}`;
 
   try {
     // 4. Send the request to Google
